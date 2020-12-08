@@ -19,7 +19,7 @@ impl Serializer {
 impl Default for Serializer {
     fn default() -> Self {
         let tree = TreeBuilder::new().with_root("root".to_string()).build();
-        Self { tree, cur: None, }
+        Self { tree, cur: None }
     }
 }
 
@@ -32,7 +32,12 @@ struct SubSerializer<'a> {
 
 impl<'a> SubSerializer<'a> {
     fn new(inner: &'a mut Serializer) -> SubSerializer<'a> {
-        Self { inner, count: 0, buf: String::new(), previous_root: None }
+        Self {
+            inner,
+            count: 0,
+            buf: String::new(),
+            previous_root: None,
+        }
     }
 }
 
@@ -98,7 +103,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     // Not particularly efficient but this is example code anyway. A more
     // performant approach would be to use the `itoa` crate.
     fn serialize_i64(self, v: i64) -> Result<()> {
-         self.get_mut().append(v.to_string());
+        self.get_mut().append(v.to_string());
         Ok(())
     }
 
@@ -115,7 +120,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_u64(self, v: u64) -> Result<()> {
-         self.get_mut().append(v.to_string());
+        self.get_mut().append(v.to_string());
         Ok(())
     }
 
@@ -153,7 +158,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
 
     fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok>
     where
-        T: Serialize
+        T: Serialize,
     {
         value.serialize(self)
     }
@@ -175,13 +180,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         variant_index.serialize(self)
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        name: &'static str,
-        value: &T,
-    ) -> Result<Self::Ok>
+    fn serialize_newtype_struct<T: ?Sized>(self, name: &'static str, value: &T) -> Result<Self::Ok>
     where
-        T: Serialize
+        T: Serialize,
     {
         value.serialize(self)
     }
@@ -194,7 +195,8 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         value: &T,
     ) -> Result<Self::Ok>
     where
-        T: Serialize {
+        T: Serialize,
+    {
         todo!()
     }
 
@@ -231,11 +233,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         Ok(SubSerializer::new(self))
     }
 
-    fn serialize_struct(
-        self,
-        name: &'static str,
-        len: usize,
-    ) -> Result<Self::SerializeStruct> {
+    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
         Ok(SubSerializer::new(self))
     }
 
@@ -257,7 +255,7 @@ impl<'a> ser::SerializeSeq for SubSerializer<'a> {
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
-        T: Serialize
+        T: Serialize,
     {
         let prev = self.inner.cur;
         let mut root = self.inner.get_mut();
@@ -284,7 +282,7 @@ impl<'a> ser::SerializeTuple for SubSerializer<'a> {
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
-        T: Serialize
+        T: Serialize,
     {
         <Self as ser::SerializeSeq>::serialize_element(self, value)
     }
@@ -299,13 +297,9 @@ impl<'a> ser::SerializeStruct for SubSerializer<'a> {
 
     type Error = SerializeError;
 
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<()>
+    fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<()>
     where
-        T: Serialize
+        T: Serialize,
     {
         let mut root = self.inner.get_mut();
         let node = root.append(key.to_string()).node_id();
@@ -322,7 +316,6 @@ impl<'a> ser::SerializeStruct for SubSerializer<'a> {
     }
 }
 
-
 //TODO: is this correct behaviour and is it valid to impl for this format?
 impl<'a> ser::SerializeMap for SubSerializer<'a> {
     type Ok = ();
@@ -331,7 +324,7 @@ impl<'a> ser::SerializeMap for SubSerializer<'a> {
 
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<()>
     where
-        T: Serialize
+        T: Serialize,
     {
         self.previous_root = self.inner.cur;
         let mut root = self.inner.get_mut();
@@ -340,7 +333,7 @@ impl<'a> ser::SerializeMap for SubSerializer<'a> {
 
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
-        T: Serialize
+        T: Serialize,
     {
         let mut root = self.inner.get_mut();
         value.serialize(&mut *self.inner)?;
@@ -360,9 +353,9 @@ impl<'a> ser::SerializeTupleStruct for SubSerializer<'a> {
 
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
-        T: Serialize 
+        T: Serialize,
     {
-        let mut str = to_string(value)?; 
+        let mut str = to_string(value)?;
         str += ", ";
         self.buf += &str;
         Ok(())
@@ -384,7 +377,7 @@ impl<'a> ser::SerializeTupleVariant for SubSerializer<'a> {
 
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
     where
-        T: Serialize
+        T: Serialize,
     {
         <Self as ser::SerializeTupleStruct>::serialize_field(self, value)
     }
@@ -399,11 +392,7 @@ impl<'a> ser::SerializeStructVariant for SubSerializer<'a> {
 
     type Error = SerializeError;
 
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<()>
+    fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<()>
     where
         T: Serialize,
     {
@@ -421,11 +410,25 @@ fn debug_tree<T: std::fmt::Debug>(tree: &Tree<T>) {
     println!("{}", out);
 }
 
-fn write_to_writer_inner<W: std::io::Write, T: ToString>(mut writer: W, tree: &Tree<T>) -> Result<()> {
-    let root = if let Some(root) = tree.root() { root } else { return Ok(()) };
-    for node in root.traverse_post_order().filter(|x| x.children().count() == 0 ) {
+fn write_to_writer_inner<W: std::io::Write, T: ToString>(
+    mut writer: W,
+    tree: &Tree<T>,
+) -> Result<()> {
+    let root = if let Some(root) = tree.root() {
+        root
+    } else {
+        return Ok(());
+    };
+    for node in root
+        .traverse_post_order()
+        .filter(|x| x.children().count() == 0)
+    {
         let ancestors: Vec<_> = node.ancestors().collect();
-        let mut line = ancestors.into_iter().rev().skip(1).fold(String::new(), |a, b| a + &b.data().to_string() + ".");
+        let mut line = ancestors
+            .into_iter()
+            .rev()
+            .skip(1)
+            .fold(String::new(), |a, b| a + &b.data().to_string() + ".");
         line.remove(line.len() - 1);
         line.push('=');
         line += &node.data().to_string();
@@ -437,10 +440,21 @@ fn write_to_writer_inner<W: std::io::Write, T: ToString>(mut writer: W, tree: &T
 
 fn write_tree<T: ToString>(tree: &Tree<T>) -> String {
     let mut string = String::new();
-    let root = if let Some(root) = tree.root() { root } else { return string };
-    for node in root.traverse_post_order().filter(|x| x.children().count() == 0 ) {
+    let root = if let Some(root) = tree.root() {
+        root
+    } else {
+        return string;
+    };
+    for node in root
+        .traverse_post_order()
+        .filter(|x| x.children().count() == 0)
+    {
         let ancestors: Vec<_> = node.ancestors().collect();
-        let mut line = ancestors.into_iter().rev().skip(1).fold(String::new(), |a, b| a + &b.data().to_string() + ".");
+        let mut line = ancestors
+            .into_iter()
+            .rev()
+            .skip(1)
+            .fold(String::new(), |a, b| a + &b.data().to_string() + ".");
         line.remove(line.len() - 1);
         line.push('=');
         line += &node.data().to_string();
@@ -468,7 +482,7 @@ fn serialize_struct() {
     struct Test {
         foo: u32,
         bar: f32,
-        baz_array: [u8; 4]
+        baz_array: [u8; 4],
     }
 
     // #[derive(Serialize)]
@@ -476,7 +490,11 @@ fn serialize_struct() {
     //     baz: Vec<u8>
     // }
     // let seq = Test { foo: 69, bar: 39.39, baz_array: BazArray{baz:vec![39, 39, 69, 0]} };
-    let seq = Test { foo: 69, bar: 39.39, baz_array: [39, 39, 69, 0] };
+    let seq = Test {
+        foo: 69,
+        bar: 39.39,
+        baz_array: [39, 39, 69, 0],
+    };
     // let seq = Test { foo: 69, bar: 39.39 };
     let mut serializer = Serializer::new();
     let ser = seq.serialize(&mut serializer);
@@ -491,7 +509,7 @@ fn serialize_struct2() {
     use serde_derive::*;
     #[derive(Serialize)]
     struct A3daFile {
-        #[serde(rename="_")]
+        #[serde(rename = "_")]
         metadata: A3daMetadata,
     }
 
@@ -504,17 +522,21 @@ fn serialize_struct2() {
 
     #[derive(Serialize)]
     struct Converter {
-        version: usize
+        version: usize,
     }
 
     #[derive(Serialize)]
     struct Property {
-        version: usize
+        version: usize,
     }
 
     let converter = Converter { version: 20050823 };
     let property = Property { version: 20050706 };
-    let metadata = A3daMetadata { file_name: "CAMPV001_BASE.a3da".to_string(), converter, property };
+    let metadata = A3daMetadata {
+        file_name: "CAMPV001_BASE.a3da".to_string(),
+        converter,
+        property,
+    };
     let a3da = A3daFile { metadata };
 
     let result = to_string(&a3da).unwrap();
